@@ -6,16 +6,18 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createBrowserClient } from "@supabase/ssr";
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend } from 'recharts';
 
 type AIReport = {
   overallComment: string;
   contradictions: string[];
   priorityActions: string[];
-  strengths: string[];
   weaknesses: string[];
   recommendations: string[];
-  successPath: string[];
+  risks: string[];
+  actionPlan3Months: string[];
+  actionPlan6Months: string[];
+  actionPlan1Year: string[];
   phaseAdvice: string;
 };
 
@@ -66,11 +68,12 @@ export default function ResultPage() {
   const [generatingAI, setGeneratingAI] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editedReport, setEditedReport] = useState<AIReport | null>(null);
+  const [originalScores, setOriginalScores] = useState<any>(null);
 
   const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
     const fetchResult = async () => {
@@ -152,6 +155,21 @@ export default function ResultPage() {
     if (result?.ai_report) {
       // 深いコピーを作成
       setEditedReport(JSON.parse(JSON.stringify(result.ai_report)));
+      // 元のスコアを保存
+      setOriginalScores({
+        q1_market_understanding: result.q1_market_understanding,
+        q2_competitive_analysis: result.q2_competitive_analysis,
+        q3_self_analysis: result.q3_self_analysis,
+        q4_value_proposition: result.q4_value_proposition,
+        q5_uniqueness: result.q5_uniqueness,
+        q6_product_service: result.q6_product_service,
+        q7_communication: result.q7_communication,
+        q8_inner_branding: result.q8_inner_branding,
+        q9_kpi_management: result.q9_kpi_management,
+        q10_results: result.q10_results,
+        q11_ip_protection: result.q11_ip_protection,
+        q12_growth_intent: result.q12_growth_intent,
+      });
       setEditMode(true);
     }
   }
@@ -165,9 +183,28 @@ export default function ResultPage() {
     if (!editedReport || !result) return;
 
     try {
+      // スコアも保存する
+      const updatedData: any = { ai_report: editedReport };
+      
+      // 編集されたスコアをデータベースに保存
+      if (editMode && result) {
+        updatedData.q1_market_understanding = (result as any).q1_market_understanding;
+        updatedData.q2_competitive_analysis = (result as any).q2_competitive_analysis;
+        updatedData.q3_self_analysis = (result as any).q3_self_analysis;
+        updatedData.q4_value_proposition = (result as any).q4_value_proposition;
+        updatedData.q5_uniqueness = (result as any).q5_uniqueness;
+        updatedData.q6_product_service = (result as any).q6_product_service;
+        updatedData.q7_communication = (result as any).q7_communication;
+        updatedData.q8_inner_branding = (result as any).q8_inner_branding;
+        updatedData.q9_kpi_management = (result as any).q9_kpi_management;
+        updatedData.q10_results = (result as any).q10_results;
+        updatedData.q11_ip_protection = (result as any).q11_ip_protection;
+        updatedData.q12_growth_intent = (result as any).q12_growth_intent;
+      }
+
       const { error } = await supabase
         .from("survey_results")
-        .update({ ai_report: editedReport })
+        .update(updatedData)
         .eq("id", result.id);
 
       if (error) throw error;
@@ -175,6 +212,7 @@ export default function ResultPage() {
       setResult({ ...result, ai_report: editedReport });
       setEditMode(false);
       setEditedReport(null);
+      setOriginalScores(null);
       alert("レポートを保存しました");
     } catch (err) {
       console.error("Error saving report:", err);
@@ -191,6 +229,7 @@ export default function ResultPage() {
     await generateAIReport(result);
     setEditMode(false);
     setEditedReport(null);
+    setOriginalScores(null);
   }
 
   function updateField(field: keyof AIReport, value: any) {
@@ -204,6 +243,12 @@ export default function ResultPage() {
       const newArray = [...(editedReport[field] as string[])];
       newArray[index] = value;
       setEditedReport({ ...editedReport, [field]: newArray });
+    }
+  }
+
+  function updateScore(questionId: string, value: number) {
+    if (result) {
+      setResult({ ...result, [questionId]: value });
     }
   }
 
@@ -249,23 +294,20 @@ export default function ResultPage() {
     result.avg_score || (scores.reduce((a, b) => a + b, 0) / 12)
   ).toFixed(1);
 
-  const chartData = QUESTIONS.map((q) => ({
-    category: q.label,
-    value: (result as any)[q.id],
-  }));
+  const chartData = QUESTIONS.map((q) => {
+    const currentValue = (result as any)[q.id];
+    const originalValue = originalScores ? originalScores[q.id] : currentValue;
+    return {
+      category: q.label,
+      current: currentValue,
+      original: originalValue,
+    };
+  });
 
   const getScoreColor = (score: number) => {
     if (score >= 4) return 'text-green-600 bg-green-50';
     if (score >= 3) return 'text-yellow-600 bg-yellow-50';
     return 'text-red-600 bg-red-50';
-  };
-
-  const getScoreLabel = (score: number) => {
-    if (score >= 4.5) return '優秀';
-    if (score >= 4) return '良好';
-    if (score >= 3) return '普通';
-    if (score >= 2) return '要改善';
-    return '要注意';
   };
 
   const displayAnalysis = editMode && editedReport ? editedReport : result.ai_report;
@@ -347,7 +389,7 @@ export default function ResultPage() {
           {generatingAI && (
             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-8 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-blue-700 font-semibold">AI分析中...（5-10秒お待ちください）</p>
+              <p className="text-blue-700 font-semibold">AI分析中...（10-20秒お待ちください）</p>
             </div>
           )}
 
@@ -389,9 +431,6 @@ export default function ResultPage() {
                   <p className="text-6xl font-bold text-white">{avgScore}</p>
                   <p className="text-xl text-blue-100">/ 5.0</p>
                 </div>
-                <p className={`text-2xl font-bold mt-4 px-6 py-2 rounded-full inline-block ${getScoreColor(Number(avgScore))}`}>
-                  {getScoreLabel(Number(avgScore))}
-                </p>
               </div>
             </div>
           </div>
@@ -406,11 +445,20 @@ export default function ResultPage() {
                   <PolarAngleAxis dataKey="category" />
                   <PolarRadiusAxis domain={[0, 5]} />
                   <Radar
-                    dataKey="value"
+                    name="元のスコア"
+                    dataKey="original"
                     stroke="#3b82f6"
                     fill="#3b82f6"
-                    fillOpacity={0.6}
+                    fillOpacity={0.3}
                   />
+                  <Radar
+                    name="現在のスコア"
+                    dataKey="current"
+                    stroke="#10b981"
+                    fill="#10b981"
+                    fillOpacity={0.3}
+                  />
+                  <Legend />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
@@ -433,9 +481,21 @@ export default function ResultPage() {
                         <p className="text-sm text-gray-600">{question.description}</p>
                       </div>
                       <div className="ml-4">
-                        <span className={`text-2xl font-bold px-4 py-2 rounded-lg ${getScoreColor(score)}`}>
-                          {score}
-                        </span>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            min="1"
+                            max="5"
+                            step="0.1"
+                            value={score}
+                            onChange={(e) => updateScore(question.id, Number(e.target.value))}
+                            className="w-20 text-2xl font-bold px-4 py-2 rounded-lg border-2 border-blue-500 text-center"
+                          />
+                        ) : (
+                          <span className={`text-2xl font-bold px-4 py-2 rounded-lg ${getScoreColor(score)}`}>
+                            {score}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="mt-2">
@@ -532,32 +592,6 @@ export default function ResultPage() {
                 </div>
               )}
 
-              {/* 強み */}
-              {displayAnalysis.strengths && displayAnalysis.strengths.length > 0 && (
-                <div className="bg-white rounded-lg p-6 shadow-md border border-green-200">
-                  <h3 className="text-xl font-bold text-green-600 mb-4 flex items-center gap-2">
-                    <span className="text-2xl">✓</span> 強み
-                  </h3>
-                  <ul className="space-y-2">
-                    {displayAnalysis.strengths.map((strength: string, i: number) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <span className="text-green-500 text-xl mt-0.5">●</span>
-                        {editMode ? (
-                          <textarea
-                            value={editedReport?.strengths?.[i] || ''}
-                            onChange={(e) => updateArrayField('strengths', i, e.target.value)}
-                            className="flex-1 p-2 border border-gray-300 rounded"
-                            rows={2}
-                          />
-                        ) : (
-                          <span className="text-gray-700">{strength}</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
               {/* 改善が必要な領域 */}
               {displayAnalysis.weaknesses && displayAnalysis.weaknesses.length > 0 && (
                 <div className="bg-white rounded-lg p-6 shadow-md border border-orange-200">
@@ -612,24 +646,26 @@ export default function ResultPage() {
                 </div>
               )}
 
-              {/* 成功への道筋 */}
-              {displayAnalysis.successPath && displayAnalysis.successPath.length > 0 && (
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 rounded-lg p-6 shadow-md">
-                  <h3 className="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
-                    <span className="text-2xl">🎯</span> 成功への道筋
+              {/* リスク分析 */}
+              {displayAnalysis.risks && displayAnalysis.risks.length > 0 && (
+                <div className="bg-red-50 border-2 border-red-300 rounded-lg p-6">
+                  <h3 className="text-xl font-bold text-red-700 mb-4 flex items-center gap-2">
+                    <span className="text-2xl">⚠️</span> リスク分析
                   </h3>
+                  <p className="text-sm text-red-600 mb-4">現状のまま放置した場合に想定されるリスク</p>
                   <ul className="space-y-3">
-                    {displayAnalysis.successPath.map((path: string, i: number) => (
-                      <li key={i} className="bg-white rounded p-3 border border-green-200">
+                    {displayAnalysis.risks.map((risk: string, i: number) => (
+                      <li key={i} className="bg-white rounded p-3 border border-red-200 flex items-start gap-3">
+                        <span className="text-red-600 text-xl mt-0.5">⚠</span>
                         {editMode ? (
                           <textarea
-                            value={editedReport?.successPath?.[i] || ''}
-                            onChange={(e) => updateArrayField('successPath', i, e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded"
+                            value={editedReport?.risks?.[i] || ''}
+                            onChange={(e) => updateArrayField('risks', i, e.target.value)}
+                            className="flex-1 p-2 border border-gray-300 rounded"
                             rows={2}
                           />
                         ) : (
-                          <span className="text-gray-800 font-medium">{path}</span>
+                          <span className="text-gray-800">{risk}</span>
                         )}
                       </li>
                     ))}
@@ -637,10 +673,94 @@ export default function ResultPage() {
                 </div>
               )}
 
+              {/* 3ヶ月後のアクションプラン */}
+              {displayAnalysis.actionPlan3Months && displayAnalysis.actionPlan3Months.length > 0 && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-6">
+                  <h3 className="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
+                    <span className="text-2xl">📅</span> 3ヶ月後のアクションプラン
+                  </h3>
+                  <ol className="space-y-3">
+                    {displayAnalysis.actionPlan3Months.map((action: string, i: number) => (
+                      <li key={i} className="bg-white rounded p-3 border border-green-200 flex items-start gap-3">
+                        <span className="bg-green-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
+                          {i + 1}
+                        </span>
+                        {editMode ? (
+                          <textarea
+                            value={editedReport?.actionPlan3Months?.[i] || ''}
+                            onChange={(e) => updateArrayField('actionPlan3Months', i, e.target.value)}
+                            className="flex-1 p-2 border border-gray-300 rounded"
+                            rows={2}
+                          />
+                        ) : (
+                          <span className="text-gray-800">{action}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {/* 6ヶ月後のアクションプラン */}
+              {displayAnalysis.actionPlan6Months && displayAnalysis.actionPlan6Months.length > 0 && (
+                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg p-6">
+                  <h3 className="text-xl font-bold text-blue-700 mb-4 flex items-center gap-2">
+                    <span className="text-2xl">📅</span> 6ヶ月後のアクションプラン
+                  </h3>
+                  <ol className="space-y-3">
+                    {displayAnalysis.actionPlan6Months.map((action: string, i: number) => (
+                      <li key={i} className="bg-white rounded p-3 border border-blue-200 flex items-start gap-3">
+                        <span className="bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
+                          {i + 1}
+                        </span>
+                        {editMode ? (
+                          <textarea
+                            value={editedReport?.actionPlan6Months?.[i] || ''}
+                            onChange={(e) => updateArrayField('actionPlan6Months', i, e.target.value)}
+                            className="flex-1 p-2 border border-gray-300 rounded"
+                            rows={2}
+                          />
+                        ) : (
+                          <span className="text-gray-800">{action}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {/* 1年後のアクションプラン */}
+              {displayAnalysis.actionPlan1Year && displayAnalysis.actionPlan1Year.length > 0 && (
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg p-6">
+                  <h3 className="text-xl font-bold text-purple-700 mb-4 flex items-center gap-2">
+                    <span className="text-2xl">📅</span> 1年後のアクションプラン
+                  </h3>
+                  <ol className="space-y-3">
+                    {displayAnalysis.actionPlan1Year.map((action: string, i: number) => (
+                      <li key={i} className="bg-white rounded p-3 border border-purple-200 flex items-start gap-3">
+                        <span className="bg-purple-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
+                          {i + 1}
+                        </span>
+                        {editMode ? (
+                          <textarea
+                            value={editedReport?.actionPlan1Year?.[i] || ''}
+                            onChange={(e) => updateArrayField('actionPlan1Year', i, e.target.value)}
+                            className="flex-1 p-2 border border-gray-300 rounded"
+                            rows={2}
+                          />
+                        ) : (
+                          <span className="text-gray-800">{action}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
               {/* 事業フェーズ別アドバイス */}
               {displayAnalysis.phaseAdvice && (
-                <div className="bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg p-6 shadow-md border border-purple-300">
-                  <h3 className="text-xl font-bold text-purple-700 mb-4 flex items-center gap-2">
+                <div className="bg-gradient-to-r from-indigo-100 to-blue-100 rounded-lg p-6 shadow-md border border-indigo-300">
+                  <h3 className="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
                     <span className="text-2xl">💡</span> {result.business_phase}フェーズのアドバイス
                   </h3>
                   {editMode ? (
