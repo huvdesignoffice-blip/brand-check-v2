@@ -13,8 +13,8 @@ export default function ThankYouPage() {
             <Image
               src="/variation logo_1.png"
               alt="HUV Design Office Logo"
-              width={180}
-              height={72}
+              width={120}
+              height={48}
               className="object-contain"
               priority
               style={{ width: 'auto', height: 'auto' }}
