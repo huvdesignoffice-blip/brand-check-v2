@@ -30,6 +30,7 @@ interface SurveyResult {
   industry: string;
   business_phase: string;
   memo: string;
+  consultation_memo: string | null;
   q1_market_understanding: number;
   q2_competitive_analysis: number;
   q3_self_analysis: number;
@@ -69,6 +70,7 @@ export default function ResultPage() {
   const [editMode, setEditMode] = useState(false);
   const [editedReport, setEditedReport] = useState<AIReport | null>(null);
   const [originalScores, setOriginalScores] = useState<any>(null);
+  const [consultationMemo, setConsultationMemo] = useState<string>('');
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -87,6 +89,7 @@ export default function ResultPage() {
         console.error('Error fetching result:', error);
       } else {
         setResult(data);
+        setConsultationMemo(data.consultation_memo || '');
         
         // AI レポートがない場合は自動生成
         if (!data.ai_report) {
@@ -124,6 +127,7 @@ export default function ResultPage() {
             assessmentData.q12_growth_intent,
           ],
           memo: assessmentData.memo,
+          consultationMemo: consultationMemo || assessmentData.consultation_memo,
           businessPhase: assessmentData.business_phase,
           companyName: assessmentData.company_name,
         }),
@@ -177,14 +181,20 @@ export default function ResultPage() {
   function handleCancelEdit() {
     setEditedReport(null);
     setEditMode(false);
+    if (result) {
+      setConsultationMemo(result.consultation_memo || '');
+    }
   }
 
   async function handleSaveEdit() {
     if (!editedReport || !result) return;
 
     try {
-      // スコアも保存する
-      const updatedData: any = { ai_report: editedReport };
+      // スコアと壁打ちメモも保存する
+      const updatedData: any = { 
+        ai_report: editedReport,
+        consultation_memo: consultationMemo
+      };
       
       // 編集されたスコアをデータベースに保存
       if (editMode && result) {
@@ -209,7 +219,7 @@ export default function ResultPage() {
 
       if (error) throw error;
 
-      setResult({ ...result, ai_report: editedReport });
+      setResult({ ...result, ai_report: editedReport, consultation_memo: consultationMemo });
       setEditMode(false);
       setEditedReport(null);
       setOriginalScores(null);
@@ -512,6 +522,32 @@ export default function ResultPage() {
             </div>
           </div>
 
+          {/* 壁打ちメモ */}
+          <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <span className="text-2xl">💬</span>
+              当日の壁打ち内容
+            </h3>
+            {editMode ? (
+              <textarea
+                value={consultationMemo}
+                onChange={(e) => setConsultationMemo(e.target.value)}
+                className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={6}
+                placeholder="相談時に話した内容や気づいたことを記録してください"
+              />
+            ) : (
+              <p className="text-base text-gray-900 whitespace-pre-wrap bg-gray-50 p-4 rounded-lg">
+                {consultationMemo || '未記入'}
+              </p>
+            )}
+            {!editMode && !consultationMemo && (
+              <p className="text-sm text-gray-500 mt-2">
+                ※ 編集モードで壁打ち内容を記録できます。記録後にAI生成すると、この内容も踏まえた分析が行われます。
+              </p>
+            )}
+          </div>
+
           {/* AI分析レポート */}
           {displayAnalysis && (
             <div className="space-y-6">
@@ -652,7 +688,7 @@ export default function ResultPage() {
                   <h3 className="text-xl font-bold text-red-700 mb-4 flex items-center gap-2">
                     <span className="text-2xl">⚠️</span> リスク分析
                   </h3>
-                  <p className="text-sm text-red-600 mb-4">現状のまま放置した場合に想定されるリスク</p>
+                  <p className="text-sm text-red-600 mb-4">現状のまま進んだ場合に想定されるリスク</p>
                   <ul className="space-y-3">
                     {displayAnalysis.risks.map((risk: string, i: number) => (
                       <li key={i} className="bg-white rounded p-3 border border-red-200 flex items-start gap-3">
@@ -778,10 +814,10 @@ export default function ResultPage() {
             </div>
           )}
 
-          {/* メモ */}
+          {/* メモ（回答時） */}
           {result.memo && (
             <div className="bg-white rounded-xl shadow-lg p-8 mb-8 mt-8">
-              <h3 className="text-xl font-bold mb-4">現状の課題・将来の展望</h3>
+              <h3 className="text-xl font-bold mb-4">現状の課題・将来の展望（回答時）</h3>
               <p className="text-base text-gray-900 whitespace-pre-wrap bg-gray-50 p-4 rounded-lg">
                 {result.memo}
               </p>

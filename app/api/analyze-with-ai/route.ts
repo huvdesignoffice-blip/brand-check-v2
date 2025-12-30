@@ -23,7 +23,7 @@ const categoryNames = [
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { scores, memo, businessPhase, companyName } = body;
+    const { scores, memo, consultationMemo, businessPhase, companyName } = body;
 
     if (!scores || scores.length !== 12) {
       return NextResponse.json(
@@ -55,6 +55,9 @@ ${scoresWithLabels}
 【経営者のメモ（課題・展望）】
 ${memo || "記載なし"}
 
+【当日の壁打ち内容】
+${consultationMemo || "記載なし"}
+
 ---
 
 以下の項目について、丁寧かつ具体的に分析してください。ですます調を使用し、配慮のある表現を心がけてください：
@@ -82,7 +85,8 @@ ${memo || "記載なし"}
 10. **事業フェーズ別アドバイス**: ${businessPhase}フェーズに特化したアドバイスを3-4文で提供します。このフェーズならではの重要なポイントを、前向きかつ具体的に示してください。
 
 重要な注意事項：
-- メモの内容を丁寧に読み取り、経営者の想いや課題認識を尊重した分析を行うこと
+- メモの内容（課題・展望）と壁打ち内容の両方を丁寧に読み取り、経営者の想いや課題認識を尊重した分析を行うこと
+- 壁打ち内容には、相談時に出てきた新しい気づきや深い課題が含まれている可能性があるため、特に注意深く考慮すること
 - 矛盾点を指摘する際も、「〜の可能性があります」「〜と考えられます」といった配慮ある表現を使うこと
 - 断定的な表現を避け、「〜することをお勧めします」「〜に取り組まれると良いでしょう」といった提案型の表現を使うこと
 - すべての文章をですます調で統一すること
