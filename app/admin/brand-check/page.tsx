@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 
 type Assessment = {
@@ -18,6 +19,9 @@ type SortField = 'created_at' | 'company_name' | 'avg_score';
 type SortOrder = 'asc' | 'desc';
 
 export default function BrandCheckAdminPage() {
+  const router = useRouter();
+  const [authenticated, setAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [filteredAssessments, setFilteredAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,13 +38,41 @@ export default function BrandCheckAdminPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  // 認証チェック
   useEffect(() => {
-    fetchAssessments();
+    checkAuth();
   }, []);
 
+  async function checkAuth() {
+    try {
+      const response = await fetch('/api/admin/auth');
+      if (response.ok) {
+        setAuthenticated(true);
+        fetchAssessments();
+      } else {
+        router.push('/admin/login');
+      }
+    } catch (error) {
+      router.push('/admin/login');
+    } finally {
+      setCheckingAuth(false);
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await fetch('/api/admin/auth', { method: 'DELETE' });
+      router.push('/admin/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  }
+
   useEffect(() => {
-    filterAndSortAssessments();
-  }, [assessments, searchTerm, sortField, sortOrder, industryFilter, phaseFilter]);
+    if (authenticated) {
+      filterAndSortAssessments();
+    }
+  }, [assessments, searchTerm, sortField, sortOrder, industryFilter, phaseFilter, authenticated]);
 
   async function fetchAssessments() {
     try {
@@ -54,7 +86,6 @@ export default function BrandCheckAdminPage() {
       const assessmentData = data || [];
       setAssessments(assessmentData);
 
-      // ユニークな業界とフェーズを抽出
       const uniqueIndustries = [...new Set(assessmentData.map(a => a.industry).filter(Boolean))] as string[];
       const uniquePhases = [...new Set(assessmentData.map(a => a.business_phase).filter(Boolean))] as string[];
       
@@ -70,7 +101,6 @@ export default function BrandCheckAdminPage() {
   function filterAndSortAssessments() {
     let filtered = [...assessments];
 
-    // テキスト検索
     if (searchTerm) {
       filtered = filtered.filter(a => 
         (a.company_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -79,26 +109,21 @@ export default function BrandCheckAdminPage() {
       );
     }
 
-    // 業界フィルター
     if (industryFilter) {
       filtered = filtered.filter(a => a.industry === industryFilter);
     }
 
-    // フェーズフィルター
     if (phaseFilter) {
       filtered = filtered.filter(a => a.business_phase === phaseFilter);
     }
 
-    // ソート
     filtered.sort((a, b) => {
       let aValue: any = a[sortField];
       let bValue: any = b[sortField];
 
-      // nullチェック
       if (aValue === null) return 1;
       if (bValue === null) return -1;
 
-      // 日付の場合
       if (sortField === 'created_at') {
         aValue = new Date(aValue).getTime();
         bValue = new Date(bValue).getTime();
@@ -115,10 +140,8 @@ export default function BrandCheckAdminPage() {
   }
 
   function exportToCSV() {
-    // CSVヘッダー
     const headers = ['作成日時', '会社名', '回答者名', 'メールアドレス', '業界', 'ビジネスフェーズ', '平均スコア'];
     
-    // CSVデータ
     const rows = filteredAssessments.map(a => [
       new Date(a.created_at).toLocaleString('ja-JP'),
       a.company_name || '',
@@ -129,17 +152,14 @@ export default function BrandCheckAdminPage() {
       (a.avg_score || 0).toFixed(1)
     ]);
 
-    // CSV文字列を作成
     const csvContent = [
       headers.join(','),
       ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
     ].join('\n');
 
-    // BOMを追加（Excelで正しく開くため）
     const bom = '\uFEFF';
     const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
     
-    // ダウンロード
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -177,6 +197,18 @@ export default function BrandCheckAdminPage() {
     }
   }
 
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">認証確認中...</div>
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -192,13 +224,21 @@ export default function BrandCheckAdminPage() {
           {/* ヘッダー */}
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">ブランドチェック管理画面</h1>
-            <button
-              onClick={exportToCSV}
-              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-            >
-              <span>📥</span>
-              CSVエクスポート ({filteredAssessments.length}件)
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={exportToCSV}
+                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <span>📥</span>
+                CSVエクスポート ({filteredAssessments.length}件)
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+              >
+                ログアウト
+              </button>
+            </div>
           </div>
 
           {/* フィルター・ソートセクション */}
