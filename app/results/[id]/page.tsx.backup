@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 // ビルド時の静的生成をスキップ
 export const dynamic = 'force-dynamic';
@@ -40,18 +40,6 @@ interface SurveyResult {
   q10_results: number;
   q11_ip_protection: number;
   q12_growth_intent: number;
-  original_q1?: number;
-  original_q2?: number;
-  original_q3?: number;
-  original_q4?: number;
-  original_q5?: number;
-  original_q6?: number;
-  original_q7?: number;
-  original_q8?: number;
-  original_q9?: number;
-  original_q10?: number;
-  original_q11?: number;
-  original_q12?: number;
   avg_score: number;
   ai_report: AIReport | null;
 }
@@ -205,36 +193,20 @@ export default function ResultPage() {
         consultation_memo: consultationMemo
       };
       
-        // 初回編集時のみ、元のスコアを保存
-        if (!result.original_q1) {
-          updatedData.original_q1 = result.q1_market_understanding;
-          updatedData.original_q2 = result.q2_competitive_analysis;
-          updatedData.original_q3 = result.q3_self_analysis;
-          updatedData.original_q4 = result.q4_value_proposition;
-          updatedData.original_q5 = result.q5_uniqueness;
-          updatedData.original_q6 = result.q6_product_service;
-          updatedData.original_q7 = result.q7_communication;
-          updatedData.original_q8 = result.q8_inner_branding;
-          updatedData.original_q9 = result.q9_kpi_management;
-          updatedData.original_q10 = result.q10_results;
-          updatedData.original_q11 = result.q11_ip_protection;
-          updatedData.original_q12 = result.q12_growth_intent;
-        }
-
       // 編集されたスコアをデータベースに保存
       if (editMode && result) {
-        updatedData.q1_market_understanding = parseInt((result as any).q1_market_understanding) || 0;
-        updatedData.q2_competitive_analysis = parseInt((result as any).q2_competitive_analysis) || 0;
-        updatedData.q3_self_analysis = parseInt((result as any).q3_self_analysis) || 0;
-        updatedData.q4_value_proposition = parseInt((result as any).q4_value_proposition) || 0;
-        updatedData.q5_uniqueness = parseInt((result as any).q5_uniqueness) || 0;
-        updatedData.q6_product_service = parseInt((result as any).q6_product_service) || 0;
-        updatedData.q7_communication = parseInt((result as any).q7_communication) || 0;
-        updatedData.q8_inner_branding = parseInt((result as any).q8_inner_branding) || 0;
-        updatedData.q9_kpi_management = parseInt((result as any).q9_kpi_management) || 0;
-        updatedData.q10_results = parseInt((result as any).q10_results) || 0;
-        updatedData.q11_ip_protection = parseInt((result as any).q11_ip_protection) || 0;
-        updatedData.q12_growth_intent = parseInt((result as any).q12_growth_intent) || 0;
+        updatedData.q1_market_understanding = (result as any).q1_market_understanding;
+        updatedData.q2_competitive_analysis = (result as any).q2_competitive_analysis;
+        updatedData.q3_self_analysis = (result as any).q3_self_analysis;
+        updatedData.q4_value_proposition = (result as any).q4_value_proposition;
+        updatedData.q5_uniqueness = (result as any).q5_uniqueness;
+        updatedData.q6_product_service = (result as any).q6_product_service;
+        updatedData.q7_communication = (result as any).q7_communication;
+        updatedData.q8_inner_branding = (result as any).q8_inner_branding;
+        updatedData.q9_kpi_management = (result as any).q9_kpi_management;
+        updatedData.q10_results = (result as any).q10_results;
+        updatedData.q11_ip_protection = (result as any).q11_ip_protection;
+        updatedData.q12_growth_intent = (result as any).q12_growth_intent;
       }
 
       const { error } = await supabase
@@ -331,14 +303,14 @@ export default function ResultPage() {
 
   const chartData = QUESTIONS.map((q) => {
     const currentValue = (result as any)[q.id];
-    const originalKey = q.id.replace('q', 'original_q');
-    const originalValue = (result as any)[originalKey] || currentValue;
+    const originalValue = originalScores ? originalScores[q.id] : currentValue;
     return {
       category: q.label,
       current: currentValue,
       original: originalValue,
     };
   });
+
   const getScoreColor = (score: number) => {
     if (score >= 4) return 'text-green-600 bg-green-50';
     if (score >= 3) return 'text-yellow-600 bg-yellow-50';
@@ -470,143 +442,6 @@ export default function ResultPage() {
             </div>
           </div>
 
-          {/* レイヤー別スコア分析 */}
-          <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">📊 レイヤー別スコア分析</h2>
-            <p className="text-gray-600 mb-6">貴社のブランド構築状況を3つのレイヤーで分析しました</p>
-            
-            <div className="space-y-6">
-              {/* 戦略レイヤー */}
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-6 border-l-4 border-blue-500">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-bold text-blue-900">【戦略レイヤー】 ブランドの基盤</h3>
-                  <div className="text-right">
-                    <span className="text-3xl font-bold text-blue-600">
-                      {(() => {
-                        const strategyScores = [
-                          result.q1_market_understanding,
-                          result.q2_competitive_analysis,
-                          result.q3_self_analysis,
-                          result.q4_value_proposition,
-                          result.q5_uniqueness
-                        ];
-                        const avg = strategyScores.reduce((a, b) => a + b, 0) / strategyScores.length;
-                        return avg.toFixed(1);
-                      })()}
-                    </span>
-                    <span className="text-gray-600 ml-1">点</span>
-                  </div>
-                </div>
-                <div className="w-full bg-blue-200 rounded-full h-3 mb-3">
-                  <div
-                    className="bg-blue-600 h-3 rounded-full transition-all"
-                    style={{
-                      width: `${(() => {
-                        const strategyScores = [
-                          result.q1_market_understanding,
-                          result.q2_competitive_analysis,
-                          result.q3_self_analysis,
-                          result.q4_value_proposition,
-                          result.q5_uniqueness
-                        ];
-                        const avg = strategyScores.reduce((a, b) => a + b, 0) / strategyScores.length;
-                        return (avg / 5) * 100;
-                      })()}%`
-                    }}
-                  ></div>
-                </div>
-                <p className="text-sm text-blue-800">市場理解、競合分析、自社分析、価値提案、独自性</p>
-              </div>
-
-              {/* 実行レイヤー */}
-              <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-6 border-l-4 border-green-500">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-bold text-green-900">【実行レイヤー】 ブランドの実践</h3>
-                  <div className="text-right">
-                    <span className="text-3xl font-bold text-green-600">
-                      {(() => {
-                        const executionScores = [
-                          result.q6_product_service,
-                          result.q7_communication,
-                          result.q8_inner_branding,
-                          result.q9_kpi_management
-                        ];
-                        const avg = executionScores.reduce((a, b) => a + b, 0) / executionScores.length;
-                        return avg.toFixed(1);
-                      })()}
-                    </span>
-                    <span className="text-gray-600 ml-1">点</span>
-                  </div>
-                </div>
-                <div className="w-full bg-green-200 rounded-full h-3 mb-3">
-                  <div
-                    className="bg-green-600 h-3 rounded-full transition-all"
-                    style={{
-                      width: `${(() => {
-                        const executionScores = [
-                          result.q6_product_service,
-                          result.q7_communication,
-                          result.q8_inner_branding,
-                          result.q9_kpi_management
-                        ];
-                        const avg = executionScores.reduce((a, b) => a + b, 0) / executionScores.length;
-                        return (avg / 5) * 100;
-                      })()}%`
-                    }}
-                  ></div>
-                </div>
-                <p className="text-sm text-green-800">商品・サービス、コミュニケーション、インナーブランディング、KPI運用</p>
-              </div>
-
-              {/* 成果レイヤー */}
-              <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-6 border-l-4 border-purple-500">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-bold text-purple-900">【成果レイヤー】 ブランドの成果</h3>
-                  <div className="text-right">
-                    <span className="text-3xl font-bold text-purple-600">
-                      {(() => {
-                        const resultScores = [
-                          result.q10_results,
-                          result.q11_ip_protection,
-                          result.q12_growth_intent
-                        ];
-                        const avg = resultScores.reduce((a, b) => a + b, 0) / resultScores.length;
-                        return avg.toFixed(1);
-                      })()}
-                    </span>
-                    <span className="text-gray-600 ml-1">点</span>
-                  </div>
-                </div>
-                <div className="w-full bg-purple-200 rounded-full h-3 mb-3">
-                  <div
-                    className="bg-purple-600 h-3 rounded-full transition-all"
-                    style={{
-                      width: `${(() => {
-                        const resultScores = [
-                          result.q10_results,
-                          result.q11_ip_protection,
-                          result.q12_growth_intent
-                        ];
-                        const avg = resultScores.reduce((a, b) => a + b, 0) / resultScores.length;
-                        return (avg / 5) * 100;
-                      })()}%`
-                    }}
-                  ></div>
-                </div>
-                <p className="text-sm text-purple-800">成果実感、知的保護、今後の方向性</p>
-              </div>
-            </div>
-
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-semibold mb-2 text-gray-900">💡 活用のポイント</h4>
-              <ul className="text-sm text-gray-700 space-y-1">
-                <li>• <strong>戦略レイヤー</strong>が低い → 市場理解や競合分析から着手</li>
-                <li>• <strong>実行レイヤー</strong>が低い → 商品・サービスの改善や社内浸透を優先</li>
-                <li>• <strong>成果レイヤー</strong>が低い → KPI設定と効果測定の仕組み構築が必要</li>
-              </ul>
-            </div>
-          </div>
-
           {/* レーダーチャート */}
           <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">スコア分布</h2>
@@ -619,17 +454,19 @@ export default function ResultPage() {
                   <Radar
                     name="元のスコア"
                     dataKey="original"
-                    stroke="#DC143C"
-                    fill="#DC143C"
+                    stroke="#3b82f6"
+                    fill="#3b82f6"
                     fillOpacity={0.3}
                   />
                   <Radar
                     name="現在のスコア"
                     dataKey="current"
-                    stroke="#000080"
-                    fill="#000080"
+                    stroke="#10b981"
+                    fill="#10b981"
                     fillOpacity={0.3}
-                  /></RadarChart>
+                  />
+                  <Legend />
+                </RadarChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -656,7 +493,7 @@ export default function ResultPage() {
                             type="number"
                             min="1"
                             max="5"
-                            
+                            step="0.1"
                             value={score}
                             onChange={(e) => updateScore(question.id, Number(e.target.value))}
                             className="w-20 text-2xl font-bold px-4 py-2 rounded-lg border-2 border-blue-500 text-center"
@@ -1004,7 +841,3 @@ export default function ResultPage() {
     </>
   );
 }
-
-
-
-

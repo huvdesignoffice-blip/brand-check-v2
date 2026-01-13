@@ -40,18 +40,6 @@ interface SurveyResult {
   q10_results: number;
   q11_ip_protection: number;
   q12_growth_intent: number;
-  original_q1?: number;
-  original_q2?: number;
-  original_q3?: number;
-  original_q4?: number;
-  original_q5?: number;
-  original_q6?: number;
-  original_q7?: number;
-  original_q8?: number;
-  original_q9?: number;
-  original_q10?: number;
-  original_q11?: number;
-  original_q12?: number;
   avg_score: number;
   ai_report: AIReport | null;
 }
@@ -205,36 +193,20 @@ export default function ResultPage() {
         consultation_memo: consultationMemo
       };
       
-        // 初回編集時のみ、元のスコアを保存
-        if (!result.original_q1) {
-          updatedData.original_q1 = result.q1_market_understanding;
-          updatedData.original_q2 = result.q2_competitive_analysis;
-          updatedData.original_q3 = result.q3_self_analysis;
-          updatedData.original_q4 = result.q4_value_proposition;
-          updatedData.original_q5 = result.q5_uniqueness;
-          updatedData.original_q6 = result.q6_product_service;
-          updatedData.original_q7 = result.q7_communication;
-          updatedData.original_q8 = result.q8_inner_branding;
-          updatedData.original_q9 = result.q9_kpi_management;
-          updatedData.original_q10 = result.q10_results;
-          updatedData.original_q11 = result.q11_ip_protection;
-          updatedData.original_q12 = result.q12_growth_intent;
-        }
-
       // 編集されたスコアをデータベースに保存
       if (editMode && result) {
-        updatedData.q1_market_understanding = parseInt((result as any).q1_market_understanding) || 0;
-        updatedData.q2_competitive_analysis = parseInt((result as any).q2_competitive_analysis) || 0;
-        updatedData.q3_self_analysis = parseInt((result as any).q3_self_analysis) || 0;
-        updatedData.q4_value_proposition = parseInt((result as any).q4_value_proposition) || 0;
-        updatedData.q5_uniqueness = parseInt((result as any).q5_uniqueness) || 0;
-        updatedData.q6_product_service = parseInt((result as any).q6_product_service) || 0;
-        updatedData.q7_communication = parseInt((result as any).q7_communication) || 0;
-        updatedData.q8_inner_branding = parseInt((result as any).q8_inner_branding) || 0;
-        updatedData.q9_kpi_management = parseInt((result as any).q9_kpi_management) || 0;
-        updatedData.q10_results = parseInt((result as any).q10_results) || 0;
-        updatedData.q11_ip_protection = parseInt((result as any).q11_ip_protection) || 0;
-        updatedData.q12_growth_intent = parseInt((result as any).q12_growth_intent) || 0;
+        updatedData.q1_market_understanding = (result as any).q1_market_understanding;
+        updatedData.q2_competitive_analysis = (result as any).q2_competitive_analysis;
+        updatedData.q3_self_analysis = (result as any).q3_self_analysis;
+        updatedData.q4_value_proposition = (result as any).q4_value_proposition;
+        updatedData.q5_uniqueness = (result as any).q5_uniqueness;
+        updatedData.q6_product_service = (result as any).q6_product_service;
+        updatedData.q7_communication = (result as any).q7_communication;
+        updatedData.q8_inner_branding = (result as any).q8_inner_branding;
+        updatedData.q9_kpi_management = (result as any).q9_kpi_management;
+        updatedData.q10_results = (result as any).q10_results;
+        updatedData.q11_ip_protection = (result as any).q11_ip_protection;
+        updatedData.q12_growth_intent = (result as any).q12_growth_intent;
       }
 
       const { error } = await supabase
@@ -331,14 +303,14 @@ export default function ResultPage() {
 
   const chartData = QUESTIONS.map((q) => {
     const currentValue = (result as any)[q.id];
-    const originalKey = q.id.replace('q', 'original_q');
-    const originalValue = (result as any)[originalKey] || currentValue;
+    const originalValue = originalScores ? originalScores[q.id] : currentValue;
     return {
       category: q.label,
       current: currentValue,
       original: originalValue,
     };
   });
+
   const getScoreColor = (score: number) => {
     if (score >= 4) return 'text-green-600 bg-green-50';
     if (score >= 3) return 'text-yellow-600 bg-yellow-50';
@@ -566,7 +538,7 @@ export default function ResultPage() {
                     <span className="text-3xl font-bold text-purple-600">
                       {(() => {
                         const resultScores = [
-                          result.q10_results,
+                          result.q10_outcome,
                           result.q11_ip_protection,
                           result.q12_growth_intent
                         ];
@@ -583,7 +555,7 @@ export default function ResultPage() {
                     style={{
                       width: `${(() => {
                         const resultScores = [
-                          result.q10_results,
+                          result.q10_outcome,
                           result.q11_ip_protection,
                           result.q12_growth_intent
                         ];
@@ -629,7 +601,9 @@ export default function ResultPage() {
                     stroke="#000080"
                     fill="#000080"
                     fillOpacity={0.3}
-                  /></RadarChart>
+                  />
+                  <Legend />
+                </RadarChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -656,7 +630,7 @@ export default function ResultPage() {
                             type="number"
                             min="1"
                             max="5"
-                            
+                            step="0.1"
                             value={score}
                             onChange={(e) => updateScore(question.id, Number(e.target.value))}
                             className="w-20 text-2xl font-bold px-4 py-2 rounded-lg border-2 border-blue-500 text-center"
@@ -1004,7 +978,3 @@ export default function ResultPage() {
     </>
   );
 }
-
-
-
-
