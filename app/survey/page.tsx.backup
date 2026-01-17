@@ -40,6 +40,7 @@ const INDUSTRIES = [
   "システムインテグレーション",
   "ITコンサルティング",
   "セキュリティ",
+  
   // 製造業
   "食品製造",
   "繊維・アパレル製造",
@@ -47,6 +48,7 @@ const INDUSTRIES = [
   "金属・機械製造",
   "電子部品・デバイス製造",
   "自動車・輸送機器製造",
+  
   // 小売・EC
   "百貨店・総合小売",
   "専門小売（食品）",
@@ -54,6 +56,7 @@ const INDUSTRIES = [
   "専門小売（家電・雑貨）",
   "EC・オンライン販売",
   "卸売",
+  
   // 飲食・宿泊
   "飲食店（レストラン）",
   "カフェ・喫茶店",
@@ -61,29 +64,34 @@ const INDUSTRIES = [
   "ホテル・旅館",
   "民泊",
   "観光・レジャー施設",
+  
   // 建設・不動産
   "建設・土木",
   "建築設計",
   "不動産売買・仲介",
   "不動産管理",
   "リフォーム・リノベーション",
+  
   // 医療・福祉
   "病院・クリニック",
   "歯科医院",
   "介護・福祉施設",
   "薬局・ドラッグストア",
   "整体・鍼灸",
+  
   // 教育
   "学習塾・予備校",
   "語学教室",
   "専門学校・各種スクール",
   "企業研修",
   "オンライン教育",
+  
   // 金融・保険
   "銀行・信用金庫",
   "証券",
   "保険",
   "ファイナンス",
+  
   // 専門サービス
   "経営コンサルティング",
   "マーケティング・PR",
@@ -92,6 +100,7 @@ const INDUSTRIES = [
   "法律事務所",
   "会計・税理士事務所",
   "人材紹介・派遣",
+  
   // その他
   "運輸・物流",
   "美容・エステ",
@@ -101,47 +110,11 @@ const INDUSTRIES = [
   "その他",
 ];
 
-// 課題の選択肢（カテゴリー別）
-const CHALLENGE_CATEGORIES = [
-  {
-    title: '売上・市場での立ち位置',
-    options: [
-      '認知・知名度不足',
-      '価格競争からの脱却',
-      '新規集客の低迷',
-      'リピート率の向上',
-    ],
-  },
-  {
-    title: '戦略・差別化',
-    options: [
-      '強みの言語化・明確化',
-      '競合との差別化',
-      'ターゲット設定の曖昧さ',
-    ],
-  },
-  {
-    title: '組織・採用',
-    options: [
-      '採用ブランディング（人材獲得）',
-      '社内の意識統一（理念浸透）',
-      '事業承継・世代交代',
-    ],
-  },
-  {
-    title: 'クリエイティブ・発信',
-    options: [
-      'デザインの一貫性（ロゴ・Web等）',
-      '情報発信・SNS運用',
-    ],
-  },
-];
-
 export default function SurveyPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
-  
+
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -154,13 +127,8 @@ export default function SurveyPage() {
     industry: '',
     business_phase: '',
     revenue_scale: '',
-    mission: '',           // 企業理念
-    vision_future: '',     // 3〜5年後のビジョン
-    other_challenge: '',   // その他の課題
+    memo: '',
   });
-
-  const [selectedChallenges, setSelectedChallenges] = useState<string[]>([]);
-  const [showOtherChallenge, setShowOtherChallenge] = useState(false);
 
   const [scores, setScores] = useState<{ [key: string]: number }>({
     q1_market_understanding: 0,
@@ -191,26 +159,6 @@ export default function SurveyPage() {
     });
   };
 
-  const handleChallengeToggle = (challenge: string) => {
-    if (challenge === 'その他') {
-      setShowOtherChallenge(!showOtherChallenge);
-      if (showOtherChallenge) {
-        // その他のチェックを外す場合、選択肢からも削除
-        setSelectedChallenges(selectedChallenges.filter(c => c !== 'その他'));
-        setFormData({ ...formData, other_challenge: '' });
-      } else {
-        // その他をチェックする場合、選択肢に追加
-        setSelectedChallenges([...selectedChallenges, 'その他']);
-      }
-    } else {
-      if (selectedChallenges.includes(challenge)) {
-        setSelectedChallenges(selectedChallenges.filter(c => c !== challenge));
-      } else {
-        setSelectedChallenges([...selectedChallenges, challenge]);
-      }
-    }
-  };
-
   const validateForm = () => {
     if (!formData.company_name || !formData.respondent_name || !formData.respondent_email) {
       alert('企業名、回答者名、メールアドレスは必須です。');
@@ -227,7 +175,6 @@ export default function SurveyPage() {
       alert('すべての質問に回答してください。');
       return false;
     }
-
     if (!agreedToPrivacy) {
       alert('個人情報保護方針に同意してください。');
       return false;
@@ -238,7 +185,7 @@ export default function SurveyPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -250,7 +197,6 @@ export default function SurveyPage() {
         .insert([
           {
             ...formData,
-            challenges: selectedChallenges,
             ...scores,
           },
         ])
@@ -282,6 +228,7 @@ export default function SurveyPage() {
         });
         console.log('Email notification sent successfully');
       } catch (emailError) {
+        // メール送信失敗してもサーベイは完了
         console.error('Email notification failed:', emailError);
       }
 
@@ -306,7 +253,7 @@ export default function SurveyPage() {
               data.q11_ip_protection,
               data.q12_growth_intent,
             ],
-            memo: `【企業理念】\n${data.mission || '未記入'}\n\n【3〜5年後のビジョン】\n${data.vision_future || '未記入'}\n\n【課題】\n${data.challenges?.join('、') || '未選択'}${data.other_challenge ? `\nその他: ${data.other_challenge}` : ''}`,
+            memo: data.memo,
             businessPhase: data.business_phase,
             companyName: data.company_name,
           }),
@@ -315,6 +262,7 @@ export default function SurveyPage() {
         if (aiResponse.ok) {
           const aiReport = await aiResponse.json();
           
+          // AI分析結果をSupabaseに保存
           const { error: updateError } = await supabase
             .from('survey_results')
             .update({ ai_report: aiReport })
@@ -336,9 +284,11 @@ export default function SurveyPage() {
       router.push('/thank-you');
     } catch (error) {
       console.error('Error submitting survey:', error);
-      const errorMessage = error instanceof Error
-        ? error.message
+      
+      const errorMessage = error instanceof Error 
+        ? error.message 
         : JSON.stringify(error);
+      
       alert(`エラーが発生しました: ${errorMessage}`);
       setLoading(false);
     }
@@ -371,7 +321,7 @@ export default function SurveyPage() {
           {/* 基本情報 */}
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-blue-200">基本情報</h2>
-
+            
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -469,104 +419,26 @@ export default function SurveyPage() {
                   ))}
                 </select>
               </div>
-            </div>
-          </section>
 
-          {/* ① 企業理念 */}
-          <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-purple-200">① 企業理念</h2>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                貴社の企業理念や大切にしている価値観をお聞かせください
-              </label>
-              <textarea
-                name="mission"
-                value={formData.mission}
-                onChange={handleInputChange}
-                rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="例：お客様の人生に寄り添い、心から信頼される存在でありたい"
-              />
-              <p className="mt-1 text-sm text-gray-500">※任意入力</p>
-            </div>
-          </section>
-
-          {/* ② 3〜5年後のビジョン */}
-          <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-purple-200">② 3〜5年後のビジョン</h2>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                3〜5年後、どのような姿を目指していますか？
-              </label>
-              <textarea
-                name="vision_future"
-                value={formData.vision_future}
-                onChange={handleInputChange}
-                rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="例：地域で一番愛される工務店になりたい、3年後に売上10億円を突破したい、など自由にお書きください"
-              />
-              <p className="mt-1 text-sm text-gray-500">※任意入力</p>
-            </div>
-          </section>
-
-          {/* ③ 課題 */}
-          <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-purple-200">③ 現在の課題</h2>
-            <p className="text-sm text-gray-600 mb-6">
-              現在、特に課題だと感じていることを選択してください（複数選択可）
-            </p>
-
-            <div className="space-y-6">
-              {CHALLENGE_CATEGORIES.map((category, catIndex) => (
-                <div key={catIndex} className="bg-purple-50 rounded-lg p-5">
-                  <h3 className="text-lg font-bold text-purple-900 mb-3">【{category.title}】</h3>
-                  <div className="space-y-2">
-                    {category.options.map((option) => (
-                      <label key={option} className="flex items-center gap-3 cursor-pointer hover:bg-purple-100 p-2 rounded transition">
-                        <input
-                          type="checkbox"
-                          checked={selectedChallenges.includes(option)}
-                          onChange={() => handleChallengeToggle(option)}
-                          className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                        />
-                        <span className="text-gray-700">{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {/* その他 */}
-              <div className="bg-gray-50 rounded-lg p-5">
-                <h3 className="text-lg font-bold text-gray-900 mb-3">【その他】</h3>
-                <label className="flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded transition mb-3">
-                  <input
-                    type="checkbox"
-                    checked={showOtherChallenge}
-                    onChange={() => handleChallengeToggle('その他')}
-                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                  />
-                  <span className="text-gray-700">その他（自由記述）</span>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  現状の課題・将来の展望
                 </label>
-
-                {showOtherChallenge && (
-                  <textarea
-                    name="other_challenge"
-                    value={formData.other_challenge}
-                    onChange={handleInputChange}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="その他の課題を具体的にお書きください"
-                  />
-                )}
+                <textarea
+                  name="memo"
+                  value={formData.memo}
+                  onChange={handleInputChange}
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="自由にご記入ください"
+                />
               </div>
             </div>
           </section>
 
-          {/* ④ 診断質問 */}
+          {/* 診断質問 */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-blue-200">④ 診断項目</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-blue-200">診断項目</h2>
             <p className="text-sm text-gray-600 mb-6">
               各項目について、現在の状況に最も近いものを5段階で評価してください。
               <br />
