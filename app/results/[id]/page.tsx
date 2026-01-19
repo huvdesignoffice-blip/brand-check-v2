@@ -27,6 +27,14 @@ interface SurveyResult {
   industry: string;
   business_phase: string;
   memo: string;
+  mission: string;
+  vision_future: string;
+  challenges: string[];
+  other_challenge: string | null;
+  mission: string;
+  vision_future: string;
+  challenges: string[];
+  other_challenge: string | null;
   consultation_memo: string | null;
   q1_market_understanding: number;
   q2_competitive_analysis: number;
@@ -456,6 +464,63 @@ export default function ResultPage() {
               </div>
             </div>
           </div>
+
+          {/* 企業理念・ビジョン・課題 */}
+          {(result.mission || result.vision_future || (result.challenges && result.challenges.length > 0)) && (
+            <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">企業理念・ビジョン・課題</h2>
+              
+              <div className="space-y-6">
+                {/* 企業理念 */}
+                {result.mission && (
+                  <div className="bg-purple-50 rounded-lg p-5">
+                    <h3 className="text-lg font-bold text-purple-900 mb-3 flex items-center gap-2">
+                      <span className="text-2xl">🎯</span>
+                      企業理念
+                    </h3>
+                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{result.mission}</p>
+                  </div>
+                )}
+
+                {/* 3〜5年後のビジョン */}
+                {result.vision_future && (
+                  <div className="bg-blue-50 rounded-lg p-5">
+                    <h3 className="text-lg font-bold text-blue-900 mb-3 flex items-center gap-2">
+                      <span className="text-2xl">🚀</span>
+                      3〜5年後のビジョン
+                    </h3>
+                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{result.vision_future}</p>
+                  </div>
+                )}
+
+                {/* 選択された課題 */}
+                {result.challenges && result.challenges.length > 0 && (
+                  <div className="bg-orange-50 rounded-lg p-5">
+                    <h3 className="text-lg font-bold text-orange-900 mb-3 flex items-center gap-2">
+                      <span className="text-2xl">📋</span>
+                      現在の課題
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {result.challenges.map((challenge: string, index: number) => (
+                        <span
+                          key={index}
+                          className="inline-block bg-white border-2 border-orange-300 text-orange-800 px-4 py-2 rounded-full text-sm font-medium"
+                        >
+                          {challenge}
+                        </span>
+                      ))}
+                    </div>
+                    {result.other_challenge && (
+                      <div className="mt-4 p-3 bg-white rounded border-2 border-orange-200">
+                        <p className="text-sm font-semibold text-orange-900 mb-1">その他：</p>
+                        <p className="text-gray-700">{result.other_challenge}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* 総合スコア */}
           <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
