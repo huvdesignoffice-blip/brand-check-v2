@@ -31,10 +31,6 @@ interface SurveyResult {
   vision_future: string;
   challenges: string[];
   other_challenge: string | null;
-  mission: string;
-  vision_future: string;
-  challenges: string[];
-  other_challenge: string | null;
   consultation_memo: string | null;
   q1_market_understanding: number;
   q2_competitive_analysis: number;
