@@ -769,11 +769,11 @@ export default function ResultPage() {
             )}
           </div>
 
-          {/* AI分析レポート */}
+          {/* 分析レポート */}
           {displayAnalysis && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-blue-600 mb-6 border-b-2 border-blue-200 pb-2">
-                AI分析レポート
+                分析レポート
               </h2>
 
               {/* 総合評価 */}
@@ -1065,6 +1065,7 @@ export default function ResultPage() {
     </>
   );
 }
+
 
 
 
